@@ -1,0 +1,16 @@
+
+{
+  "manifest_version": 3,
+  "name": "Sold Unit Counter",
+  "version": "1.0",
+  "description": "Counts units with 'Telah Dijual' status on the page.",
+  "permissions": ["activeTab", "scripting"],
+  "action": {
+    "default_popup": "popup.html",
+    "default_icon": {
+      "16": "icon.webp",
+      "48": "icon.webp",
+      "128": "icon.webp"
+    }
+  }
+}

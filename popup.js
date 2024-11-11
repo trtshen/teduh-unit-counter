@@ -51,6 +51,10 @@ function loadVisitedUrls() {
     const visitedUrls = data.visitedUrls || [];
     const dropdown = document.getElementById("visited-urls");
 
+    if (dropdown === null) {
+      return;
+    }
+    
     visitedUrls.forEach(url => {
       const option = document.createElement("option");
       option.value = url;

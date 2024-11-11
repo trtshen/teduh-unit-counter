@@ -32,6 +32,19 @@ document.addEventListener("DOMContentLoaded", () => {
           console.error("Failed to retrieve countUnits results.");
         }
       });
+
+      // Get the title of the property
+      chrome.scripting.executeScript({
+        target: { tabId: tabs[0].id },
+        function: getTitle
+      }, (results) => {
+        if (results && results[0] && results[0].result) {
+          const title = results[0].result;
+          document.getElementById("project-title").textContent = title;
+        } else {
+          console.error("Failed to retrieve title.");
+        }
+      });
     } else {
       // Display a message if the URL is incorrect
       document.body.innerHTML = `
@@ -42,8 +55,18 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Load the list of visited URLs in the dropdown
     loadVisitedUrls();
+
+    // Add event listener to the dropdown for opening a new tab on change
+    const dropdown = document.getElementById("visited-urls");
+    if (dropdown) {
+      dropdown.addEventListener("change", openSelectedUrl);
+    }
   });
 });
+
+function getTitle() {
+  return document.querySelector('p.text-center.font-semibold.text-white')?.innerText;
+}
 
 // Function to load visited URLs into the dropdown
 function loadVisitedUrls() {

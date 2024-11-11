@@ -1,10 +1,13 @@
-
 {
   "manifest_version": 3,
-  "name": "Sold Unit Counter",
+  "name": "Teduh: Unit Counter",
   "version": "1.0",
-  "description": "Counts units with 'Telah Dijual' status on the page.",
-  "permissions": ["activeTab", "scripting"],
+  "description": "Counts units status on the page.",
+  "permissions": [
+    "activeTab",
+    "scripting",
+    "storage"
+  ],
   "action": {
     "default_popup": "popup.html",
     "default_icon": {

@@ -1,16 +1,32 @@
-
 <!DOCTYPE html>
 <html>
+
 <head>
-  <title>Sold Unit Counter</title>
+  <title>Unit Status Counter</title>
   <style>
-    body { font-family: Arial, sans-serif; width: 150px; padding: 10px; }
-    #count { font-size: 20px; font-weight: bold; }
+    body {
+      font-family: Arial, sans-serif;
+      width: 200px;
+      padding: 10px;
+    }
+
+    .count {
+      font-size: 20px;
+      font-weight: bold;
+    }
   </style>
 </head>
+
 <body>
-  <h3>Sold Units:</h3>
-  <div id="count">Loading...</div>
+  <h3>Unit Status:</h3>
+  <div>Total Units: <span id="total-units">Loading...</span></div>
+  <div>Sold Units: <span id="sold-count">Loading...</span></div>
+  <div>Not Sold Units: <span id="not-sold-count">Loading...</span></div>
+  <h4>Last Visited URLs:</h4>
+  <select id="visited-urls" onchange="openSelectedUrl()">
+    <option value="">Select a URL...</option>
+  </select>
   <script src="popup.js"></script>
 </body>
+
 </html>

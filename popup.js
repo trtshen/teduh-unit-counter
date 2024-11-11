@@ -5,19 +5,6 @@ document.addEventListener("DOMContentLoaded", () => {
 
     // Check if the user is on the correct URL
     if (correctUrlPattern.test(tabUrl)) {
-      // Add the current URL to the storage list if it's new
-      chrome.storage.local.get({ visitedUrls: [] }, (data) => {
-        const visitedUrls = data.visitedUrls || [];
-        if (!visitedUrls.includes(tabUrl)) {
-          visitedUrls.push(tabUrl);
-          chrome.storage.local.set({ visitedUrls }, () => {
-            if (chrome.runtime.lastError) {
-              console.error("Error setting storage:", chrome.runtime.lastError);
-            }
-          });
-        }
-      });
-
       // Run the unit counting script
       chrome.scripting.executeScript({
         target: { tabId: tabs[0].id },
@@ -40,7 +27,29 @@ document.addEventListener("DOMContentLoaded", () => {
       }, (results) => {
         if (results && results[0] && results[0].result) {
           const title = results[0].result;
-          document.getElementById("project-title").textContent = title;
+
+          // Extract the code from the URL
+          const urlCodeMatch = tabUrl.match(/^https:\/\/teduh\.kpkt\.gov\.my\/unit-project-swasta\/([^\/]+)/);
+          const urlCode = urlCodeMatch ? urlCodeMatch[1] : '';
+
+          // Combine the title with the code
+          const combinedTitle = `${title} (${urlCode})`;
+
+          // Add the current URL and combined title to the storage list if it's new
+          chrome.storage.local.get({ visitedUrls: [] }, (data) => {
+            const visitedUrls = data.visitedUrls || [];
+            const urlExists = visitedUrls.some(item => item.url === tabUrl);
+            if (!urlExists) {
+              visitedUrls.push({ url: tabUrl, title: combinedTitle });
+              chrome.storage.local.set({ visitedUrls }, () => {
+                if (chrome.runtime.lastError) {
+                  console.error("Error setting storage:", chrome.runtime.lastError);
+                }
+              });
+            }
+          });
+
+          document.getElementById("project-title").textContent = combinedTitle;
         } else {
           console.error("Failed to retrieve title.");
         }
@@ -78,10 +87,10 @@ function loadVisitedUrls() {
       return;
     }
     
-    visitedUrls.forEach(url => {
+    visitedUrls.forEach(item => {
       const option = document.createElement("option");
-      option.value = url;
-      option.textContent = url;
+      option.value = item.url;
+      option.textContent = item.title;
       dropdown.appendChild(option);
     });
   });

@@ -18,19 +18,34 @@
     select {
       width: 80vw;
     }
+
+    div#link-generator {
+      padding-top: 1em;
+      width: 80vw;
+      display: flex;
+      justify-content: space-between;
+    }
   </style>
 </head>
 
 <body>
-  <h2 id="project-title"></h2>
-  <h3>Unit Status:</h3>
-  <div>Total Units: <span id="total-units">Loading...</span></div>
-  <div>Sold Units: <span id="sold-count">Loading...</span></div>
-  <div>Not Sold Units: <span id="not-sold-count">Loading...</span></div>
-  <h4>Last Visited URLs:</h4>
-  <select id="visited-urls" onchange="openSelectedUrl()">
-    <option value="">Select a URL...</option>
-  </select>
+  <div id="figures">
+    <h2 id="project-title"></h2>
+    <h3>Unit Status:</h3>
+    <div>Total Units: <span id="total-units">Loading...</span></div>
+    <div>Sold Units: <span id="sold-count">Loading...</span></div>
+    <div>Not Sold Units: <span id="not-sold-count">Loading...</span></div>
+  </div>
+
+  <div id="last-visits">
+    <h4>Last Visited URLs:</h4>
+    <select id="visited-urls" onchange="openSelectedUrl()">
+      <option value="">Select a URL...</option>
+    </select>
+  </div>
+
+  <div id="link-generator"></div>
+  
   <script src="popup.js"></script>
 </body>
 

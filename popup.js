@@ -28,12 +28,12 @@ document.addEventListener("DOMContentLoaded", () => {
         if (results && results[0] && results[0].result) {
           const title = results[0].result;
 
-          // Extract the code from the URL
-          const urlCodeMatch = tabUrl.match(/^https:\/\/teduh\.kpkt\.gov\.my\/unit-project-swasta\/([^\/]+)/);
-          const urlCode = urlCodeMatch ? urlCodeMatch[1] : '';
+          // Extract the code from the URL (APDL - Advertising Permit and Developer’s License)
+          const apdlMatch = tabUrl.match(/^https:\/\/teduh\.kpkt\.gov\.my\/unit-project-swasta\/([^\/]+)/);
+          const apdl = apdlMatch ? apdlMatch[1] : '';
 
           // Combine the title with the code
-          const combinedTitle = `${title} (${urlCode})`;
+          const combinedTitle = `${title} (${apdl})`;
 
           // Add the current URL and combined title to the storage list if it's new
           chrome.storage.local.get({ visitedUrls: [] }, (data) => {
@@ -56,22 +56,49 @@ document.addEventListener("DOMContentLoaded", () => {
       });
     } else {
       // Display a message if the URL is incorrect
-      document.body.innerHTML = `
+      const figuresSection = document.getElementById("figures");
+      const messageContainer = `<div>
         <h3>Invalid URL</h3>
         <p>Please visit <a href="https://teduh.kpkt.gov.my/project-swasta/" target="_blank">https://teduh.kpkt.gov.my/project-swasta/</a> and find a property to use this extension.</p>
-      `;
-    }
+      </div>`;
+      figuresSection.innerHTML = messageContainer;
 
-    // Load the list of visited URLs in the dropdown
-    loadVisitedUrls();
-
-    // Add event listener to the dropdown for opening a new tab on change
-    const dropdown = document.getElementById("visited-urls");
-    if (dropdown) {
-      dropdown.addEventListener("change", openSelectedUrl);
+      linkGenerator();
     }
   });
+
+  // Load the list of visited URLs in the dropdown
+  loadVisitedUrls();
+
+  // Add event listener to the dropdown for opening a new tab on change
+  const dropdown = document.getElementById("visited-urls");
+  if (dropdown) {
+    dropdown.addEventListener("change", openSelectedUrl);
+  }
+
 });
+
+function linkGenerator() {
+  // HTML structure for APDL input and generate link button
+  const apdlSection = `
+    <input type="text" id="apdl-input" placeholder="Enter APDL code" />
+    <button id="generate-link-button">Generate Link</button>
+  `;
+  document.getElementById('link-generator').innerHTML = apdlSection;
+
+  // Add event listener to the APDL input field
+  const apdlInput = document.getElementById("apdl-input");
+  const generateLinkButton = document.getElementById("generate-link-button");
+  if (apdlInput && generateLinkButton) {
+    generateLinkButton.addEventListener("click", () => {
+      const apdlCode = apdlInput.value.trim();
+      if (apdlCode) {
+        const generatedUrl = `https://teduh.kpkt.gov.my/unit-project-swasta/${apdlCode}`;
+        chrome.tabs.create({ url: generatedUrl });
+      }
+    });
+  }
+}
 
 function getTitle() {
   return document.querySelector('p.text-center.font-semibold.text-white')?.innerText;

@@ -59,7 +59,7 @@ document.addEventListener("DOMContentLoaded", () => {
       const figuresSection = document.getElementById("figures");
       const messageContainer = `<div>
         <h3>Invalid URL</h3>
-        <p>Please visit <a href="https://teduh.kpkt.gov.my/project-swasta/" target="_blank">https://teduh.kpkt.gov.my/project-swasta/</a> and find a property to use this extension.</p>
+        <p>Please visit <a href="https://teduh.kpkt.gov.my/" target="_blank">https://teduh.kpkt.gov.my/</a> and find a property to use this extension.</p>
       </div>`;
       figuresSection.innerHTML = messageContainer;
 

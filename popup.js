@@ -38,9 +38,10 @@ document.addEventListener("DOMContentLoaded", () => {
           // Add the current URL and combined title to the storage list if it's new
           chrome.storage.local.get({ visitedUrls: [] }, (data) => {
             const visitedUrls = data.visitedUrls || [];
-            const urlExists = visitedUrls.some(item => item.url === tabUrl);
+            const safeUrl = tabUrl.split('?')[0];
+            const urlExists = visitedUrls.some(item => item.url === safeUrl);
             if (!urlExists) {
-              visitedUrls.push({ url: tabUrl, title: combinedTitle });
+              visitedUrls.push({ url: safeUrl, title: combinedTitle });
               chrome.storage.local.set({ visitedUrls }, () => {
                 if (chrome.runtime.lastError) {
                   console.error("Error setting storage:", chrome.runtime.lastError);
@@ -101,10 +102,10 @@ function linkGenerator() {
 }
 
 function getTitle() {
-  return document.querySelector('p.text-center.font-semibold.text-white')?.innerText;
+  const el = document.querySelector('p.text-center.font-semibold.text-white');
+  return el ? (el.textContent ?? '') : undefined;
 }
 
-// Function to load visited URLs into the dropdown
 function loadVisitedUrls() {
   chrome.storage.local.get({ visitedUrls: [] }, (data) => {
     const visitedUrls = data.visitedUrls || [];
@@ -152,4 +153,15 @@ function countUnits() {
 
   const totalUnits = unitBoxes.length;
   return { totalUnits, soldCount, notSoldCount };
+}
+
+// export functions for testing
+if (typeof module !== "undefined") {
+  module.exports = {
+    countUnits,
+    getTitle,
+    linkGenerator,
+    loadVisitedUrls,
+    openSelectedUrl
+  };
 }

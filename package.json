@@ -1,0 +1,16 @@
+{
+  "name": "teduh-unit-counter",
+  "version": "1.0.0",
+  "description": "unit tests for popup.js using jest and jsdom",
+  "scripts": {
+    "test": "jest"
+  },
+  "devDependencies": {
+    "jest": "^29.7.0",
+    "jsdom": "^23.0.0",
+    "jest-environment-jsdom": "^29.7.0"
+  },
+  "jest": {
+    "testEnvironment": "jsdom"
+  }
+}

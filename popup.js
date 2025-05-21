@@ -30,7 +30,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
           // Extract the code from the URL (APDL - Advertising Permit and Developer’s License)
           const apdlMatch = tabUrl.match(/^https:\/\/teduh\.kpkt\.gov\.my\/unit-project-swasta\/([^\/]+)/);
-          const apdl = apdlMatch ? apdlMatch[1] : '';
+          const apdl = apdlMatch ? apdlMatch[1].split('?')[0] : '';
 
           // Combine the title with the code
           const combinedTitle = `${title} (${apdl})`;

@@ -69,9 +69,29 @@ document.addEventListener("DOMContentLoaded", () => {
       }, (results) => {
         if (results && results[0] && results[0].result) {
           const { totalUnits, soldCount, notSoldCount } = results[0].result;
-          document.getElementById("total-units").textContent = totalUnits;
-          document.getElementById("sold-count").textContent = soldCount;
-          document.getElementById("not-sold-count").textContent = notSoldCount;
+          const safeUrl = tabUrl.split('?')[0];
+          
+          // Get previous unit counts for this URL
+          chrome.storage.local.get({ urlCounts: {} }, (data) => {
+            const urlCounts = data.urlCounts || {};
+            const previousCounts = urlCounts[safeUrl];
+            
+            // Display current counts with previous counts in brackets if available
+            document.getElementById("total-units").textContent = totalUnits + 
+              (previousCounts ? ` (${previousCounts.totalUnits})` : '');
+            document.getElementById("sold-count").textContent = soldCount + 
+              (previousCounts ? ` (${previousCounts.soldCount})` : '');
+            document.getElementById("not-sold-count").textContent = notSoldCount + 
+              (previousCounts ? ` (${previousCounts.notSoldCount})` : '');
+            
+            // Save current counts
+            urlCounts[safeUrl] = { totalUnits, soldCount, notSoldCount };
+            chrome.storage.local.set({ urlCounts }, () => {
+              if (chrome.runtime.lastError) {
+                console.error("Error saving counts:", chrome.runtime.lastError);
+              }
+            });
+          });
         } else {
           console.error("Failed to retrieve countUnits results.");
         }

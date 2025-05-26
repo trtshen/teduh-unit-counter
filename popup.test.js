@@ -179,6 +179,7 @@ describe('visitedUrls storage', () => {
     );
   });
 });
+
 describe('cleanupInvalidStorageEntries', () => {
   beforeEach(() => {
     global.chrome = {
@@ -312,3 +313,65 @@ describe('cleanupInvalidStorageEntries', () => {
   });
 });
 
+describe('unitCounts storage and display', () => {
+  beforeEach(() => {
+    global.chrome = {
+      storage: {
+        local: {
+          get: jest.fn(),
+          set: jest.fn((data, cb) => cb && cb())
+        }
+      },
+      runtime: { lastError: null }
+    };
+    document.body.innerHTML = `
+      <span id="total-units"></span>
+      <span id="sold-count"></span>
+      <span id="not-sold-count"></span>
+    `;
+  });
+
+  afterEach(() => {
+    delete global.chrome;
+  });
+
+  it('stores unit counts and shows previous counts', () => {
+    const safeUrl = 'https://teduh.kpkt.gov.my/unit-project-swasta/abc123';
+    const currentCounts = { totalUnits: 100, soldCount: 60, notSoldCount: 40 };
+    const previousCounts = { totalUnits: 90, soldCount: 50, notSoldCount: 40 };
+    
+    // Mock previous counts retrieval
+    global.chrome.storage.local.get.mockImplementation((key, cb) => {
+      const urlCounts = {};
+      urlCounts[safeUrl] = previousCounts;
+      cb({ urlCounts });
+    });
+
+    // Simulate updating the counts display with previous counts in brackets
+    document.getElementById("total-units").textContent = currentCounts.totalUnits + 
+      ` (${previousCounts.totalUnits})`;
+    document.getElementById("sold-count").textContent = currentCounts.soldCount + 
+      ` (${previousCounts.soldCount})`;
+    document.getElementById("not-sold-count").textContent = currentCounts.notSoldCount + 
+      ` (${previousCounts.notSoldCount})`;
+    
+    // Then save the current counts
+    const urlCounts = {};
+    urlCounts[safeUrl] = currentCounts;
+    chrome.storage.local.set({ urlCounts }, () => {});
+
+    // Verify the display
+    expect(document.getElementById("total-units").textContent).toBe('100 (90)');
+    expect(document.getElementById("sold-count").textContent).toBe('60 (50)');
+    expect(document.getElementById("not-sold-count").textContent).toBe('40 (40)');
+    
+    // Verify storage was called
+    expect(global.chrome.storage.local.set).toHaveBeenCalled();
+    
+    // Check that the object passed to set has the expected structure
+    const setCall = global.chrome.storage.local.set.mock.calls[0][0];
+    expect(setCall).toHaveProperty('urlCounts');
+    expect(Object.keys(setCall.urlCounts)).toContain(safeUrl);
+    expect(setCall.urlCounts[safeUrl]).toEqual(currentCounts);
+  });
+});

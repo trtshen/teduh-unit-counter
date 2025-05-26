@@ -9,7 +9,8 @@ const {
   getTitle,
   linkGenerator,
   loadVisitedUrls,
-  openSelectedUrl
+  openSelectedUrl,
+  cleanupInvalidStorageEntries
 } = require('./popup.js');
 
 describe('countUnits', () => {
@@ -178,3 +179,136 @@ describe('visitedUrls storage', () => {
     );
   });
 });
+describe('cleanupInvalidStorageEntries', () => {
+  beforeEach(() => {
+    global.chrome = {
+      storage: {
+        local: {
+          get: jest.fn(),
+          set: jest.fn((data, cb) => cb && cb())
+        }
+      },
+      runtime: { lastError: null }
+    };
+  });
+
+  afterEach(() => {
+    delete global.chrome;
+  });
+
+  it('cleans up URLs with query parameters', () => {
+    // Sample data with invalid URLs
+    const mockData = {
+      visitedUrls: [
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/abc123?param=value', title: 'Project ABC (abc123)' },
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/def456', title: 'Project DEF (def456)' }
+      ]
+    };
+
+    // Mock the storage.get to return our test data
+    global.chrome.storage.local.get.mockImplementation((keys, callback) => {
+      callback(mockData);
+    });
+
+    // Create a mock callback
+    const mockCallback = jest.fn();
+
+    // Call the function
+    cleanupInvalidStorageEntries(mockCallback);
+
+    // Check that set was called with cleaned data
+    expect(global.chrome.storage.local.set).toHaveBeenCalledWith({
+      visitedUrls: [
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/abc123', title: 'Project ABC (abc123)' },
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/def456', title: 'Project DEF (def456)' }
+      ]
+    }, expect.any(Function));
+    
+    // Execute the callback that would be passed to chrome.storage.local.set
+    global.chrome.storage.local.set.mock.calls[0][1]();
+    
+    // Check that our callback was called
+    expect(mockCallback).toHaveBeenCalled();
+  });
+
+  it('cleans up titles with query parameters in APDL code', () => {
+    // Sample data with invalid titles
+    const mockData = {
+      visitedUrls: [
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/abc123', title: 'Project ABC (abc123?param=value)' },
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/def456', title: 'Project DEF (def456)' }
+      ]
+    };
+
+    // Mock the storage.get to return our test data
+    global.chrome.storage.local.get.mockImplementation((keys, callback) => {
+      callback(mockData);
+    });
+
+    // Call the function
+    cleanupInvalidStorageEntries();
+
+    // Check that set was called with cleaned data
+    expect(global.chrome.storage.local.set).toHaveBeenCalledWith({
+      visitedUrls: [
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/abc123', title: 'Project ABC (abc123)' },
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/def456', title: 'Project DEF (def456)' }
+      ]
+    }, expect.any(Function));
+  });
+
+  it('removes duplicate URLs keeping first occurrence', () => {
+    // Sample data with duplicate URLs but different titles
+    const mockData = {
+      visitedUrls: [
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/abc123', title: 'Project ABC (abc123)' },
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/abc123', title: 'Project ABC Modified (abc123)' },
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/def456', title: 'Project DEF (def456)' }
+      ]
+    };
+
+    // Mock the storage.get to return our test data
+    global.chrome.storage.local.get.mockImplementation((keys, callback) => {
+      callback(mockData);
+    });
+
+    // Call the function
+    cleanupInvalidStorageEntries();
+
+    // Check that set was called with cleaned data (no duplicates)
+    expect(global.chrome.storage.local.set).toHaveBeenCalledWith({
+      visitedUrls: [
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/abc123', title: 'Project ABC (abc123)' },
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/def456', title: 'Project DEF (def456)' }
+      ]
+    }, expect.any(Function));
+  });
+
+  it('does not update storage if no changes needed but still calls callback', () => {
+    // Sample data with clean entries
+    const mockData = {
+      visitedUrls: [
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/abc123', title: 'Project ABC (abc123)' },
+        { url: 'https://teduh.kpkt.gov.my/unit-project-swasta/def456', title: 'Project DEF (def456)' }
+      ]
+    };
+
+    // Mock the storage.get to return our test data
+    global.chrome.storage.local.get.mockImplementation((keys, callback) => {
+      callback(mockData);
+    });
+
+    // Create a mock callback
+    const mockCallback = jest.fn();
+
+    // Call the function
+    cleanupInvalidStorageEntries(mockCallback);
+
+    // Check that set was not called since no changes needed
+    expect(global.chrome.storage.local.set).not.toHaveBeenCalled();
+    
+    // Check that our callback was still called
+    expect(mockCallback).toHaveBeenCalled();
+  });
+});
+

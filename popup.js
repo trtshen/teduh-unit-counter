@@ -1,11 +1,68 @@
+function cleanupInvalidStorageEntries(callback) {
+  chrome.storage.local.get({ visitedUrls: [] }, (data) => {
+    const visitedUrls = data.visitedUrls || [];
+    const cleanedUrls = [];
+    const seenUrls = new Set();
+    let hasChanges = false;
+
+    // Process each entry to clean up invalid ones
+    visitedUrls.forEach(item => {
+      // Clean up URL by removing query params
+      const cleanUrl = item.url.split('?')[0];
+
+      // Check if title contains the APDL code with query parameters
+      let cleanTitle = item.title;
+      const titleMatch = item.title.match(/^(.*?)\s+\(([^)]+)\)$/);
+      if (titleMatch) {
+        const baseName = titleMatch[1];
+        const apdlCode = titleMatch[2].split('?')[0]; // Remove query params from APDL
+        cleanTitle = `${baseName} (${apdlCode})`;
+      }
+
+      // Check if we need to update this entry
+      const needsUpdate = cleanUrl !== item.url || cleanTitle !== item.title;
+
+      // Only add to cleaned list if the URL is unique
+      if (!seenUrls.has(cleanUrl)) {
+        seenUrls.add(cleanUrl);
+        cleanedUrls.push(needsUpdate ? { url: cleanUrl, title: cleanTitle } : item);
+        hasChanges = hasChanges || needsUpdate;
+      } else {
+        // skip duplicated URL
+        hasChanges = true;
+      }
+    });
+
+    if (hasChanges) {
+      chrome.storage.local.set({ visitedUrls: cleanedUrls }, () => {
+        if (chrome.runtime.lastError) {
+          console.error("Error cleaning up storage:", chrome.runtime.lastError);
+        }
+        if (typeof callback === 'function') {
+          callback();
+        }
+      });
+    } else {
+      if (typeof callback === 'function') {
+        callback();
+      }
+    }
+  });
+}
+
 document.addEventListener("DOMContentLoaded", () => {
+  cleanupInvalidStorageEntries(() => {
+    // Load the list of visited URLs in the dropdown after cleanup
+    loadVisitedUrls();
+  });
+
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const tabUrl = tabs[0].url;
     const correctUrlPattern = /^https:\/\/teduh\.kpkt\.gov\.my\/unit-project-swasta\/.*/;
 
     // Check if the user is on the correct URL
     if (correctUrlPattern.test(tabUrl)) {
-      // Run the unit counting script
+      // unit counting script
       chrome.scripting.executeScript({
         target: { tabId: tabs[0].id },
         function: countUnits
@@ -20,7 +77,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // Get the title of the property
       chrome.scripting.executeScript({
         target: { tabId: tabs[0].id },
         function: getTitle
@@ -32,7 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
           const apdlMatch = tabUrl.match(/^https:\/\/teduh\.kpkt\.gov\.my\/unit-project-swasta\/([^\/]+)/);
           const apdl = apdlMatch ? apdlMatch[1].split('?')[0] : '';
 
-          // Combine the title with the code
           const combinedTitle = `${title} (${apdl})`;
 
           // Add the current URL and combined title to the storage list if it's new
@@ -67,9 +122,6 @@ document.addEventListener("DOMContentLoaded", () => {
       linkGenerator();
     }
   });
-
-  // Load the list of visited URLs in the dropdown
-  loadVisitedUrls();
 
   // Add event listener to the dropdown for opening a new tab on change
   const dropdown = document.getElementById("visited-urls");
@@ -114,7 +166,12 @@ function loadVisitedUrls() {
     if (dropdown === null) {
       return;
     }
-    
+
+    // Clear dropdown before populating to avoid duplicates
+    while (dropdown.options.length > 1) { // Keep the first "Select a URL..." option
+      dropdown.remove(1);
+    }
+
     visitedUrls.forEach(item => {
       const option = document.createElement("option");
       option.value = item.url;
@@ -124,7 +181,6 @@ function loadVisitedUrls() {
   });
 }
 
-// Function to open the selected URL
 function openSelectedUrl() {
   const dropdown = document.getElementById("visited-urls");
   const selectedUrl = dropdown.value;
@@ -155,13 +211,13 @@ function countUnits() {
   return { totalUnits, soldCount, notSoldCount };
 }
 
-// export functions for testing
 if (typeof module !== "undefined") {
   module.exports = {
     countUnits,
     getTitle,
     linkGenerator,
     loadVisitedUrls,
-    openSelectedUrl
+    openSelectedUrl,
+    cleanupInvalidStorageEntries
   };
 }

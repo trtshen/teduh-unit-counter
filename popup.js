@@ -1,4 +1,3 @@
-// Function to check and cleanup invalid storage entries
 function cleanupInvalidStorageEntries(callback) {
   chrome.storage.local.get({ visitedUrls: [] }, (data) => {
     const visitedUrls = data.visitedUrls || [];
@@ -22,31 +21,28 @@ function cleanupInvalidStorageEntries(callback) {
 
       // Check if we need to update this entry
       const needsUpdate = cleanUrl !== item.url || cleanTitle !== item.title;
-      
-      // Only add to cleaned list if we haven't seen this URL before
+
+      // Only add to cleaned list if the URL is unique
       if (!seenUrls.has(cleanUrl)) {
         seenUrls.add(cleanUrl);
         cleanedUrls.push(needsUpdate ? { url: cleanUrl, title: cleanTitle } : item);
         hasChanges = hasChanges || needsUpdate;
       } else {
-        // Duplicate URL, skip it
+        // skip duplicated URL
         hasChanges = true;
       }
     });
 
-    // Save changes if needed
     if (hasChanges) {
       chrome.storage.local.set({ visitedUrls: cleanedUrls }, () => {
         if (chrome.runtime.lastError) {
           console.error("Error cleaning up storage:", chrome.runtime.lastError);
         }
-        // Call the callback after saving changes
         if (typeof callback === 'function') {
           callback();
         }
       });
     } else {
-      // Call the callback even if no changes were needed
       if (typeof callback === 'function') {
         callback();
       }
@@ -55,19 +51,18 @@ function cleanupInvalidStorageEntries(callback) {
 }
 
 document.addEventListener("DOMContentLoaded", () => {
-  // Clean up any invalid entries in storage first, then load visited URLs
   cleanupInvalidStorageEntries(() => {
     // Load the list of visited URLs in the dropdown after cleanup
     loadVisitedUrls();
   });
-  
+
   chrome.tabs.query({ active: true, currentWindow: true }, (tabs) => {
     const tabUrl = tabs[0].url;
     const correctUrlPattern = /^https:\/\/teduh\.kpkt\.gov\.my\/unit-project-swasta\/.*/;
 
     // Check if the user is on the correct URL
     if (correctUrlPattern.test(tabUrl)) {
-      // Run the unit counting script
+      // unit counting script
       chrome.scripting.executeScript({
         target: { tabId: tabs[0].id },
         function: countUnits
@@ -82,7 +77,6 @@ document.addEventListener("DOMContentLoaded", () => {
         }
       });
 
-      // Get the title of the property
       chrome.scripting.executeScript({
         target: { tabId: tabs[0].id },
         function: getTitle
@@ -94,7 +88,6 @@ document.addEventListener("DOMContentLoaded", () => {
           const apdlMatch = tabUrl.match(/^https:\/\/teduh\.kpkt\.gov\.my\/unit-project-swasta\/([^\/]+)/);
           const apdl = apdlMatch ? apdlMatch[1].split('?')[0] : '';
 
-          // Combine the title with the code
           const combinedTitle = `${title} (${apdl})`;
 
           // Add the current URL and combined title to the storage list if it's new
@@ -173,12 +166,12 @@ function loadVisitedUrls() {
     if (dropdown === null) {
       return;
     }
-    
+
     // Clear dropdown before populating to avoid duplicates
     while (dropdown.options.length > 1) { // Keep the first "Select a URL..." option
       dropdown.remove(1);
     }
-    
+
     visitedUrls.forEach(item => {
       const option = document.createElement("option");
       option.value = item.url;
@@ -188,7 +181,6 @@ function loadVisitedUrls() {
   });
 }
 
-// Function to open the selected URL
 function openSelectedUrl() {
   const dropdown = document.getElementById("visited-urls");
   const selectedUrl = dropdown.value;
@@ -219,7 +211,6 @@ function countUnits() {
   return { totalUnits, soldCount, notSoldCount };
 }
 
-// export functions for testing
 if (typeof module !== "undefined") {
   module.exports = {
     countUnits,

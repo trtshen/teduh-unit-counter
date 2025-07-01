@@ -68,13 +68,15 @@ document.addEventListener("DOMContentLoaded", () => {
         function: countUnits
       }, (results) => {
         if (results && results[0] && results[0].result) {
-          const { totalUnits, soldCount, notSoldCount } = results[0].result;
+          const { totalUnits, soldCount, notSoldCount, unitStatuses } = results[0].result;
           const safeUrl = tabUrl.split('?')[0];
           
-          // Get previous unit counts for this URL
-          chrome.storage.local.get({ urlCounts: {} }, (data) => {
+          // Get previous unit counts and statuses for this URL
+          chrome.storage.local.get({ urlCounts: {}, unitStatuses: {}, newlySoldUnits: {} }, (data) => {
             const urlCounts = data.urlCounts || {};
             const previousCounts = urlCounts[safeUrl];
+            const previousUnitStatuses = data.unitStatuses[safeUrl] || [];
+            const newlySoldUnits = data.newlySoldUnits[safeUrl] || [];
             
             // Display current counts with previous counts in brackets if available
             document.getElementById("total-units").textContent = totalUnits + 
@@ -84,13 +86,37 @@ document.addEventListener("DOMContentLoaded", () => {
             document.getElementById("not-sold-count").textContent = notSoldCount + 
               (previousCounts ? ` (${previousCounts.notSoldCount})` : '');
             
-            // Save current counts
+            // Detect newly sold units
+            const currentlyNewlySold = detectNewlySoldUnits(unitStatuses, previousUnitStatuses, newlySoldUnits);
+            
+            // Save current counts and unit statuses
             urlCounts[safeUrl] = { totalUnits, soldCount, notSoldCount };
-            chrome.storage.local.set({ urlCounts }, () => {
+            const updatedUnitStatuses = { ...data.unitStatuses };
+            updatedUnitStatuses[safeUrl] = unitStatuses;
+            const updatedNewlySoldUnits = { ...data.newlySoldUnits };
+            updatedNewlySoldUnits[safeUrl] = currentlyNewlySold;
+            
+            chrome.storage.local.set({ 
+              urlCounts, 
+              unitStatuses: updatedUnitStatuses,
+              newlySoldUnits: updatedNewlySoldUnits
+            }, () => {
               if (chrome.runtime.lastError) {
-                console.error("Error saving counts:", chrome.runtime.lastError);
+                console.error("Error saving data:", chrome.runtime.lastError);
+              } else {
+                // Apply highlighting to newly sold units
+                if (currentlyNewlySold.length > 0) {
+                  chrome.scripting.executeScript({
+                    target: { tabId: tabs[0].id },
+                    function: highlightNewlySoldUnits,
+                    args: [currentlyNewlySold]
+                  });
+                }
               }
             });
+            
+            // Update UI to show newly sold count and mark as read button
+            updateNewlySoldUI(currentlyNewlySold, safeUrl, tabs[0].id);
           });
         } else {
           console.error("Failed to retrieve countUnits results.");
@@ -173,6 +199,148 @@ function linkGenerator() {
   }
 }
 
+function detectNewlySoldUnits(currentUnitStatuses, previousUnitStatuses, existingNewlySold) {
+  const newlySoldUnits = [...existingNewlySold]; // Keep existing newly sold units
+  
+  // Create lookup map for previous statuses
+  const previousStatusMap = {};
+  previousUnitStatuses.forEach(unit => {
+    previousStatusMap[unit.unitNumber] = unit.status;
+  });
+  
+  // Check for newly sold units
+  currentUnitStatuses.forEach(currentUnit => {
+    const { unitNumber, status } = currentUnit;
+    const previousStatus = previousStatusMap[unitNumber];
+    
+    // If unit was previously not sold (or unknown) and is now sold, mark as newly sold
+    if (status === "Telah Dijual" && 
+        previousStatus && 
+        previousStatus !== "Telah Dijual" && 
+        !newlySoldUnits.some(unit => unit.unitNumber === unitNumber)) {
+      newlySoldUnits.push({
+        unitNumber: unitNumber,
+        dateMarkedSold: new Date().toISOString()
+      });
+    }
+  });
+  
+  return newlySoldUnits;
+}
+
+function highlightNewlySoldUnits(newlySoldUnits) {
+  // Remove any existing highlighting
+  const existingHighlights = document.querySelectorAll('.newly-sold-highlight');
+  existingHighlights.forEach(el => {
+    el.classList.remove('newly-sold-highlight');
+    el.style.removeProperty('background-color');
+    el.style.removeProperty('color');
+    el.style.removeProperty('border');
+    el.style.removeProperty('border-radius');
+    el.style.removeProperty('padding');
+  });
+  
+  // Apply highlighting to newly sold units
+  const unitBoxes = document.querySelectorAll("div.unit-box");
+  const newlySoldNumbers = newlySoldUnits.map(unit => unit.unitNumber);
+  
+  unitBoxes.forEach((unit, index) => {
+    const tooltipData = unit.getAttribute("data-tooltip");
+    let unitNumber = null;
+    
+    if (tooltipData) {
+      const tooltipObj = JSON.parse(tooltipData);
+      unitNumber = tooltipObj["Unit Number"] || 
+                   tooltipObj["No Unit"] || 
+                   tooltipObj["Unit"] || 
+                   tooltipObj["Nombor Unit"] ||
+                   tooltipObj["No. Unit"] ||
+                   `unit-${index + 1}`;
+    } else {
+      unitNumber = `unit-${index + 1}`;
+    }
+    
+    if (newlySoldNumbers.includes(unitNumber)) {
+      unit.classList.add('newly-sold-highlight');
+      unit.style.backgroundColor = '#fff3cd'; // Mild yellow background
+      unit.style.color = '#dc3545'; // Red text
+      unit.style.border = '2px solid #ffc107'; // Yellow border
+      unit.style.borderRadius = '4px';
+      unit.style.padding = '2px';
+    }
+  });
+}
+
+function updateNewlySoldUI(newlySoldUnits, safeUrl, tabId) {
+  const figuresDiv = document.getElementById("figures");
+  
+  // Remove existing newly sold UI if present
+  const existingNewlySoldDiv = document.getElementById("newly-sold-section");
+  if (existingNewlySoldDiv) {
+    existingNewlySoldDiv.remove();
+  }
+  
+  if (newlySoldUnits.length > 0) {
+    const newlySoldDiv = document.createElement("div");
+    newlySoldDiv.id = "newly-sold-section";
+    newlySoldDiv.innerHTML = `
+      <div style="margin-top: 10px; padding: 10px; background-color: #f8f9fa; border-radius: 4px; border-left: 4px solid #dc3545;">
+        <div style="font-weight: bold; color: #dc3545;">Newly Sold Units: ${newlySoldUnits.length}</div>
+        <div style="font-size: 12px; color: #6c757d; margin-top: 4px;">
+          Units: ${newlySoldUnits.map(unit => unit.unitNumber).join(', ')}
+        </div>
+        <button id="mark-as-read-btn" style="margin-top: 8px; padding: 4px 8px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
+          Mark as Read
+        </button>
+      </div>
+    `;
+    
+    figuresDiv.appendChild(newlySoldDiv);
+    
+    // Add click handler for mark as read button
+    document.getElementById("mark-as-read-btn").addEventListener("click", () => {
+      markNewlySoldAsRead(safeUrl, tabId);
+    });
+  }
+}
+
+function markNewlySoldAsRead(safeUrl, tabId) {
+  chrome.storage.local.get({ newlySoldUnits: {} }, (data) => {
+    const newlySoldUnits = { ...data.newlySoldUnits };
+    newlySoldUnits[safeUrl] = []; // Clear newly sold units for this URL
+    
+    chrome.storage.local.set({ newlySoldUnits }, () => {
+      if (chrome.runtime.lastError) {
+        console.error("Error clearing newly sold units:", chrome.runtime.lastError);
+      } else {
+        // Remove highlighting from the page
+        chrome.scripting.executeScript({
+          target: { tabId: tabId },
+          function: clearNewlySoldHighlighting
+        });
+        
+        // Update UI
+        const newlySoldSection = document.getElementById("newly-sold-section");
+        if (newlySoldSection) {
+          newlySoldSection.remove();
+        }
+      }
+    });
+  });
+}
+
+function clearNewlySoldHighlighting() {
+  const highlightedUnits = document.querySelectorAll('.newly-sold-highlight');
+  highlightedUnits.forEach(unit => {
+    unit.classList.remove('newly-sold-highlight');
+    unit.style.removeProperty('background-color');
+    unit.style.removeProperty('color');
+    unit.style.removeProperty('border');
+    unit.style.removeProperty('border-radius');
+    unit.style.removeProperty('padding');
+  });
+}
+
 function getTitle() {
   const el = document.querySelector('p.text-center.font-semibold.text-white');
   return el ? (el.textContent ?? '') : undefined;
@@ -213,22 +381,47 @@ function countUnits() {
   const unitBoxes = document.querySelectorAll("div.unit-box");
   let soldCount = 0;
   let notSoldCount = 0;
+  const unitStatuses = [];
 
-  unitBoxes.forEach((unit) => {
+  unitBoxes.forEach((unit, index) => {
     const tooltipData = unit.getAttribute("data-tooltip");
+    let unitNumber = null;
+    let status = null;
+    
     if (tooltipData) {
       const tooltipObj = JSON.parse(tooltipData);
-      const status = tooltipObj["Status Jualan"];
+      status = tooltipObj["Status Jualan"];
+      
+      // Try to extract unit number from tooltip data
+      // Common keys might be: "Unit Number", "No Unit", "Unit", "Nombor Unit"
+      unitNumber = tooltipObj["Unit Number"] || 
+                   tooltipObj["No Unit"] || 
+                   tooltipObj["Unit"] || 
+                   tooltipObj["Nombor Unit"] ||
+                   tooltipObj["No. Unit"] ||
+                   `unit-${index + 1}`; // fallback to index-based numbering
+      
       if (status === "Telah Dijual") {
         soldCount++;
       } else if (status === "Belum Dijual") {
         notSoldCount++;
       }
+      
+      unitStatuses.push({
+        unitNumber: unitNumber,
+        status: status
+      });
+    } else {
+      // Handle units without tooltip data
+      unitStatuses.push({
+        unitNumber: `unit-${index + 1}`,
+        status: "Unknown"
+      });
     }
   });
 
   const totalUnits = unitBoxes.length;
-  return { totalUnits, soldCount, notSoldCount };
+  return { totalUnits, soldCount, notSoldCount, unitStatuses };
 }
 
 if (typeof module !== "undefined") {
@@ -238,6 +431,11 @@ if (typeof module !== "undefined") {
     linkGenerator,
     loadVisitedUrls,
     openSelectedUrl,
-    cleanupInvalidStorageEntries
+    cleanupInvalidStorageEntries,
+    detectNewlySoldUnits,
+    highlightNewlySoldUnits,
+    updateNewlySoldUI,
+    markNewlySoldAsRead,
+    clearNewlySoldHighlighting
   };
 }

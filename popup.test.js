@@ -524,3 +524,54 @@ describe('clearNewlySoldHighlighting', () => {
     });
   });
 });
+
+describe('updateNewlySoldUI', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="figures"></div>';
+  });
+
+  it('displays newly sold units with date information', () => {
+    const newlySoldUnits = [
+      { unitNumber: "unit-1", dateMarkedSold: "2023-07-01T10:30:00.000Z" },
+      { unitNumber: "unit-2", dateMarkedSold: "2023-07-01T11:00:00.000Z" }
+    ];
+    
+    updateNewlySoldUI(newlySoldUnits, "test-url", 123);
+    
+    const newlySoldSection = document.getElementById("newly-sold-section");
+    expect(newlySoldSection).toBeTruthy();
+    
+    const content = newlySoldSection.innerHTML;
+    expect(content).toContain("Newly Sold Units: 2");
+    expect(content).toContain("Units: unit-1, unit-2");
+    expect(content).toContain("Date:");
+    expect(content).toContain("Mark as Read");
+  });
+
+  it('does not display section when no newly sold units', () => {
+    updateNewlySoldUI([], "test-url", 123);
+    
+    const newlySoldSection = document.getElementById("newly-sold-section");
+    expect(newlySoldSection).toBeFalsy();
+  });
+
+  it('removes existing newly sold section before creating new one', () => {
+    // Create initial section
+    const figuresDiv = document.getElementById("figures");
+    const existingSection = document.createElement("div");
+    existingSection.id = "newly-sold-section";
+    existingSection.innerHTML = "Old content";
+    figuresDiv.appendChild(existingSection);
+    
+    const newlySoldUnits = [
+      { unitNumber: "unit-1", dateMarkedSold: "2023-07-01T10:30:00.000Z" }
+    ];
+    
+    updateNewlySoldUI(newlySoldUnits, "test-url", 123);
+    
+    const sections = document.querySelectorAll("#newly-sold-section");
+    expect(sections.length).toBe(1);
+    expect(sections[0].innerHTML).not.toContain("Old content");
+    expect(sections[0].innerHTML).toContain("Newly Sold Units: 1");
+  });
+});

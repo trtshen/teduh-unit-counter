@@ -281,6 +281,23 @@ function updateNewlySoldUI(newlySoldUnits, safeUrl, tabId) {
   }
   
   if (newlySoldUnits.length > 0) {
+    // Get the most recent date for display
+    const mostRecentDate = newlySoldUnits
+      .map(unit => new Date(unit.dateMarkedSold))
+      .sort((a, b) => b - a)[0];
+    
+    // Format the date nicely
+    const formatDate = (date) => {
+      const options = { 
+        year: 'numeric', 
+        month: 'long', 
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit'
+      };
+      return date.toLocaleDateString('en-US', options);
+    };
+    
     const newlySoldDiv = document.createElement("div");
     newlySoldDiv.id = "newly-sold-section";
     newlySoldDiv.innerHTML = `
@@ -288,6 +305,9 @@ function updateNewlySoldUI(newlySoldUnits, safeUrl, tabId) {
         <div style="font-weight: bold; color: #dc3545;">Newly Sold Units: ${newlySoldUnits.length}</div>
         <div style="font-size: 12px; color: #6c757d; margin-top: 4px;">
           Units: ${newlySoldUnits.map(unit => unit.unitNumber).join(', ')}
+        </div>
+        <div style="font-size: 11px; color: #6c757d; margin-top: 4px; font-style: italic;">
+          Date: ${formatDate(mostRecentDate)}
         </div>
         <button id="mark-as-read-btn" style="margin-top: 8px; padding: 4px 8px; background-color: #28a745; color: white; border: none; border-radius: 3px; cursor: pointer; font-size: 12px;">
           Mark as Read

@@ -10,7 +10,12 @@ const {
   linkGenerator,
   loadVisitedUrls,
   openSelectedUrl,
-  cleanupInvalidStorageEntries
+  cleanupInvalidStorageEntries,
+  detectNewlySoldUnits,
+  highlightNewlySoldUnits,
+  updateNewlySoldUI,
+  markNewlySoldAsRead,
+  clearNewlySoldHighlighting
 } = require('./popup.js');
 
 describe('countUnits', () => {
@@ -19,7 +24,12 @@ describe('countUnits', () => {
   });
 
   it('returns zero counts when no units', () => {
-    expect(countUnits()).toEqual({ totalUnits: 0, soldCount: 0, notSoldCount: 0 });
+    expect(countUnits()).toEqual({ 
+      totalUnits: 0, 
+      soldCount: 0, 
+      notSoldCount: 0, 
+      unitStatuses: [] 
+    });
   });
 
   it('counts sold and unsold units correctly', () => {
@@ -31,7 +41,19 @@ describe('countUnits', () => {
       <div class="unit-box" data-tooltip='{"Status Jualan":"Other"}'></div>
       <div class="unit-box"></div>
     `;
-    expect(countUnits()).toEqual({ totalUnits: 6, soldCount: 2, notSoldCount: 2 });
+    expect(countUnits()).toEqual({ 
+      totalUnits: 6, 
+      soldCount: 2, 
+      notSoldCount: 2,
+      unitStatuses: [
+        { unitNumber: "unit-1", status: "Telah Dijual" },
+        { unitNumber: "unit-2", status: "Belum Dijual" },
+        { unitNumber: "unit-3", status: "Telah Dijual" },
+        { unitNumber: "unit-4", status: "Belum Dijual" },
+        { unitNumber: "unit-5", status: "Other" },
+        { unitNumber: "unit-6", status: "Unknown" }
+      ]
+    });
   });
 });
 
@@ -375,5 +397,181 @@ describe('unitCounts storage and display', () => {
     expect(setCall).toHaveProperty('urlCounts');
     expect(Object.keys(setCall.urlCounts)).toContain(safeUrl);
     expect(setCall.urlCounts[safeUrl]).toEqual(currentCounts);
+  });
+});
+
+describe('detectNewlySoldUnits', () => {
+  it('detects newly sold units correctly', () => {
+    const currentUnitStatuses = [
+      { unitNumber: "unit-1", status: "Telah Dijual" },
+      { unitNumber: "unit-2", status: "Belum Dijual" },
+      { unitNumber: "unit-3", status: "Telah Dijual" }
+    ];
+    
+    const previousUnitStatuses = [
+      { unitNumber: "unit-1", status: "Belum Dijual" },
+      { unitNumber: "unit-2", status: "Belum Dijual" },
+      { unitNumber: "unit-3", status: "Telah Dijual" }
+    ];
+    
+    const existingNewlySold = [];
+    
+    const result = detectNewlySoldUnits(currentUnitStatuses, previousUnitStatuses, existingNewlySold);
+    
+    expect(result).toHaveLength(1);
+    expect(result[0].unitNumber).toBe("unit-1");
+    expect(result[0]).toHaveProperty('dateMarkedSold');
+  });
+
+  it('preserves existing newly sold units', () => {
+    const currentUnitStatuses = [
+      { unitNumber: "unit-1", status: "Telah Dijual" },
+      { unitNumber: "unit-2", status: "Telah Dijual" }
+    ];
+    
+    const previousUnitStatuses = [
+      { unitNumber: "unit-1", status: "Telah Dijual" },
+      { unitNumber: "unit-2", status: "Belum Dijual" }
+    ];
+    
+    const existingNewlySold = [
+      { unitNumber: "unit-3", dateMarkedSold: "2023-01-01T00:00:00.000Z" }
+    ];
+    
+    const result = detectNewlySoldUnits(currentUnitStatuses, previousUnitStatuses, existingNewlySold);
+    
+    expect(result).toHaveLength(2);
+    expect(result.map(u => u.unitNumber)).toContain("unit-2");
+    expect(result.map(u => u.unitNumber)).toContain("unit-3");
+  });
+
+  it('does not duplicate newly sold units', () => {
+    const currentUnitStatuses = [
+      { unitNumber: "unit-1", status: "Telah Dijual" }
+    ];
+    
+    const previousUnitStatuses = [
+      { unitNumber: "unit-1", status: "Belum Dijual" }
+    ];
+    
+    const existingNewlySold = [
+      { unitNumber: "unit-1", dateMarkedSold: "2023-01-01T00:00:00.000Z" }
+    ];
+    
+    const result = detectNewlySoldUnits(currentUnitStatuses, previousUnitStatuses, existingNewlySold);
+    
+    expect(result).toHaveLength(1);
+    expect(result[0].unitNumber).toBe("unit-1");
+    expect(result[0].dateMarkedSold).toBe("2023-01-01T00:00:00.000Z");
+  });
+});
+
+describe('highlightNewlySoldUnits', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('applies highlighting to newly sold units', () => {
+    document.body.innerHTML = `
+      <div class="unit-box" data-tooltip='{"Status Jualan":"Telah Dijual"}'></div>
+      <div class="unit-box" data-tooltip='{"Status Jualan":"Belum Dijual"}'></div>
+    `;
+    
+    const newlySoldUnits = [{ unitNumber: "unit-1", dateMarkedSold: "2023-01-01T00:00:00.000Z" }];
+    
+    highlightNewlySoldUnits(newlySoldUnits);
+    
+    const units = document.querySelectorAll('.unit-box');
+    expect(units[0].classList.contains('newly-sold-highlight')).toBe(true);
+    expect(units[0].style.backgroundColor).toBe('rgb(255, 243, 205)'); // #fff3cd
+    expect(units[0].style.color).toBe('rgb(220, 53, 69)'); // #dc3545
+    expect(units[1].classList.contains('newly-sold-highlight')).toBe(false);
+  });
+
+  it('removes existing highlighting before applying new highlighting', () => {
+    document.body.innerHTML = `
+      <div class="unit-box newly-sold-highlight" data-tooltip='{"Status Jualan":"Telah Dijual"}' style="background-color: red;"></div>
+    `;
+    
+    const newlySoldUnits = [];
+    
+    highlightNewlySoldUnits(newlySoldUnits);
+    
+    const unit = document.querySelector('.unit-box');
+    expect(unit.classList.contains('newly-sold-highlight')).toBe(false);
+    expect(unit.style.backgroundColor).toBe('');
+  });
+});
+
+describe('clearNewlySoldHighlighting', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '';
+  });
+
+  it('removes highlighting from all newly sold units', () => {
+    document.body.innerHTML = `
+      <div class="unit-box newly-sold-highlight" style="background-color: #fff3cd; color: #dc3545;"></div>
+      <div class="unit-box newly-sold-highlight" style="background-color: #fff3cd; color: #dc3545;"></div>
+    `;
+    
+    clearNewlySoldHighlighting();
+    
+    const units = document.querySelectorAll('.unit-box');
+    units.forEach(unit => {
+      expect(unit.classList.contains('newly-sold-highlight')).toBe(false);
+      expect(unit.style.backgroundColor).toBe('');
+      expect(unit.style.color).toBe('');
+    });
+  });
+});
+
+describe('updateNewlySoldUI', () => {
+  beforeEach(() => {
+    document.body.innerHTML = '<div id="figures"></div>';
+  });
+
+  it('displays newly sold units with date information', () => {
+    const newlySoldUnits = [
+      { unitNumber: "unit-1", dateMarkedSold: "2023-07-01T10:30:00.000Z" },
+      { unitNumber: "unit-2", dateMarkedSold: "2023-07-01T11:00:00.000Z" }
+    ];
+    
+    updateNewlySoldUI(newlySoldUnits, "test-url", 123);
+    
+    const newlySoldSection = document.getElementById("newly-sold-section");
+    expect(newlySoldSection).toBeTruthy();
+    
+    const content = newlySoldSection.innerHTML;
+    expect(content).toContain("Newly Sold Units: 2");
+    expect(content).toContain("Units: unit-1, unit-2");
+    expect(content).toContain("Date:");
+    expect(content).toContain("Mark as Read");
+  });
+
+  it('does not display section when no newly sold units', () => {
+    updateNewlySoldUI([], "test-url", 123);
+    
+    const newlySoldSection = document.getElementById("newly-sold-section");
+    expect(newlySoldSection).toBeFalsy();
+  });
+
+  it('removes existing newly sold section before creating new one', () => {
+    // Create initial section
+    const figuresDiv = document.getElementById("figures");
+    const existingSection = document.createElement("div");
+    existingSection.id = "newly-sold-section";
+    existingSection.innerHTML = "Old content";
+    figuresDiv.appendChild(existingSection);
+    
+    const newlySoldUnits = [
+      { unitNumber: "unit-1", dateMarkedSold: "2023-07-01T10:30:00.000Z" }
+    ];
+    
+    updateNewlySoldUI(newlySoldUnits, "test-url", 123);
+    
+    const sections = document.querySelectorAll("#newly-sold-section");
+    expect(sections.length).toBe(1);
+    expect(sections[0].innerHTML).not.toContain("Old content");
+    expect(sections[0].innerHTML).toContain("Newly Sold Units: 1");
   });
 });

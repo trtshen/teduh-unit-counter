@@ -2,7 +2,7 @@
 const API_BASE = "https://teduh.kpkt.gov.my/api";
 const TEDUH_SEARCH_URL = "https://teduh.kpkt.gov.my/semakan-status-kemajuan";
 const MAX_RECENT = 10;
-const APDL_PATTERN = /^\d+-\d+$/;
+const APDL_PATTERN = /^\d+(-\d+)?$/;
 
 // === API ===
 
@@ -245,9 +245,23 @@ function renderRecentList(list) {
   }
 }
 
+// === Validation ===
+
+function validateApdl(apdl) {
+  if (!apdl) return "Please enter an APDL code.";
+  if (!APDL_PATTERN.test(apdl)) return "Invalid APDL format. Expected digits or digits-dash-digits (e.g. 30343 or 30343-1).";
+  return null;
+}
+
 // === Core lookup ===
 
 async function lookupApdl(apdl) {
+  const validationError = validateApdl(apdl);
+  if (validationError) {
+    showStatus(validationError, "error");
+    return;
+  }
+
   hideProjectInfo();
   showStatus("Loading\u2026", "loading");
 
@@ -331,6 +345,7 @@ if (typeof module !== "undefined") {
     hideProjectInfo,
     renderNewlySold,
     renderRecentList,
+    validateApdl,
     lookupApdl,
     initPopup,
     APDL_PATTERN,

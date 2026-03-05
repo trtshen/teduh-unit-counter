@@ -10,11 +10,11 @@
 - [x] full Jest test suite (43 tests)
 - [x] async/await with promise wrappers for chrome.storage
 - [x] extract constants (API_BASE, APDL_PATTERN, MAX_RECENT)
+- [x] validate APDL input format before making API call (show user feedback)
+- [x] add loading spinner / status indicator during API fetch
 
 ## To Do
-- [ ] validate APDL input format before making API call (show user feedback)
 - [ ] add search-by-keyword feature (API supports `?q=keyword&search_type=projek`)
 - [ ] offline fallback — display last-known data when API is unreachable
 - [ ] support i18n/localization (Malay / English)
-- [ ] add loading spinner or skeleton UI during API fetch
 - [ ] publish to Chrome Web Store

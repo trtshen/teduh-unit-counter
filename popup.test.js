@@ -49,6 +49,7 @@ const {
   hideProjectInfo,
   renderNewlySold,
   renderRecentList,
+  validateApdl,
   lookupApdl,
   APDL_PATTERN,
   API_BASE,
@@ -130,14 +131,16 @@ describe("Constants", () => {
     expect(APDL_PATTERN.test("30343-1")).toBe(true);
     expect(APDL_PATTERN.test("1-2")).toBe(true);
     expect(APDL_PATTERN.test("12345-67")).toBe(true);
+    expect(APDL_PATTERN.test("30343")).toBe(true);
+    expect(APDL_PATTERN.test("7")).toBe(true);
   });
 
   it("APDL_PATTERN rejects invalid codes", () => {
     expect(APDL_PATTERN.test("abc")).toBe(false);
-    expect(APDL_PATTERN.test("30343")).toBe(false);
     expect(APDL_PATTERN.test("-1")).toBe(false);
     expect(APDL_PATTERN.test("")).toBe(false);
     expect(APDL_PATTERN.test("ABC-123")).toBe(false);
+    expect(APDL_PATTERN.test("123-")).toBe(false);
   });
 });
 
@@ -549,6 +552,32 @@ describe("renderNewlySold", () => {
 });
 
 // =====================================================
+//  validateApdl
+// =====================================================
+
+describe("validateApdl", () => {
+  it("returns null for valid APDL codes", () => {
+    expect(validateApdl("30343-1")).toBeNull();
+    expect(validateApdl("1-2")).toBeNull();
+    expect(validateApdl("123456-789")).toBeNull();
+    expect(validateApdl("30343")).toBeNull();
+  });
+
+  it("returns error for empty or missing input", () => {
+    expect(validateApdl("")).toBe("Please enter an APDL code.");
+    expect(validateApdl(null)).toBe("Please enter an APDL code.");
+    expect(validateApdl(undefined)).toBe("Please enter an APDL code.");
+  });
+
+  it("returns error for invalid format", () => {
+    expect(validateApdl("abc")).toContain("Invalid APDL format");
+    expect(validateApdl("abc-def")).toContain("Invalid APDL format");
+    expect(validateApdl("123-")).toContain("Invalid APDL format");
+    expect(validateApdl("-123")).toContain("Invalid APDL format");
+  });
+});
+
+// =====================================================
 //  lookupApdl (integration-style)
 // =====================================================
 
@@ -590,5 +619,13 @@ describe("lookupApdl", () => {
 
     expect(document.getElementById("status-msg").textContent).toBe("Network error");
     expect(document.getElementById("status-msg").className).toBe("error");
+  });
+
+  it("shows validation error for invalid APDL and does not fetch", async () => {
+    await lookupApdl("bad-input!");
+
+    expect(document.getElementById("status-msg").textContent).toContain("Invalid APDL format");
+    expect(document.getElementById("status-msg").className).toBe("error");
+    expect(global.fetch).not.toHaveBeenCalled();
   });
 });

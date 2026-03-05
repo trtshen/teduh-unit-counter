@@ -1,19 +1,34 @@
 {
   "manifest_version": 3,
-  "name": "Teduh: Unit Counter",
-  "version": "1.1.5",
-  "description": "Counts units status on the page.",
+  "name": "TEDUH APDL Fast Access",
+  "version": "2.0.0",
+  "description": "Quick access to TEDUH project details and unit status tracking by APDL code.",
   "permissions": [
-    "activeTab",
-    "scripting",
-    "storage"
+    "storage",
+    "declarativeNetRequest"
+  ],
+  "host_permissions": [
+    "https://teduh.kpkt.gov.my/*"
   ],
   "action": {
     "default_popup": "popup.html",
+    "default_title": "TEDUH APDL Fast Access",
     "default_icon": {
       "16": "house-icon.png",
       "48": "house-icon.png",
       "128": "house-icon.png"
     }
+  },
+  "background": {
+    "service_worker": "background.js"
+  },
+  "declarative_net_request": {
+    "rule_resources": [
+      {
+        "id": "ruleset_legacy_redirect",
+        "enabled": true,
+        "path": "rules.json"
+      }
+    ]
   }
 }

@@ -1,15 +1,20 @@
-# todo list
+# todo list (v2)
 
-- refactor code into smaller, reusable functions for better readability and maintainability
-- use async/await with chrome apis by creating promise-based wrappers
-- add error handling for all chrome api calls and dom queries
-- validate and sanitize user input for apdl code before generating urls
-- clear the visited urls dropdown before populating to avoid duplicates
-- centralize dom updates to reduce code duplication
-- extract dom selectors and regex patterns as constants at the top of the file
-- add loading and error states in the ui for better user feedback
-- add documentation and organize code into logical sections
-- consider extracting static text for future localization support
-- add unit tests for core logic (e.g., countUnits function)
-- review and remove any unused code or variables
-- ensure all user-facing text is clear and concise
+## Done
+- [x] rewrite to API-first approach (no content scripts / DOM scraping)
+- [x] fetch project details and unit list from public REST APIs
+- [x] count sold / unsold units from API response
+- [x] detect newly sold units between visits
+- [x] recent APDL lookup history (max 10)
+- [x] declarativeNetRequest rules for legacy URL redirects
+- [x] full Jest test suite (43 tests)
+- [x] async/await with promise wrappers for chrome.storage
+- [x] extract constants (API_BASE, APDL_PATTERN, MAX_RECENT)
+
+## To Do
+- [ ] validate APDL input format before making API call (show user feedback)
+- [ ] add search-by-keyword feature (API supports `?q=keyword&search_type=projek`)
+- [ ] offline fallback — display last-known data when API is unreachable
+- [ ] support i18n/localization (Malay / English)
+- [ ] add loading spinner or skeleton UI during API fetch
+- [ ] publish to Chrome Web Store

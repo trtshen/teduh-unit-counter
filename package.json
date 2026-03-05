@@ -3,7 +3,9 @@
   "version": "1.0.0",
   "description": "unit tests for popup.js using jest and jsdom",
   "scripts": {
-    "test": "jest"
+    "test": "jest",
+    "pack": "zip -r teduh.zip manifest.json popup.html popup.css popup.js utils.js copy16.png copy48.png copy128.png privacy-policy.html",
+    "clean:pack": "rm -f *.zip && npm run pack"
   },
   "devDependencies": {
     "jest": "^29.7.0",

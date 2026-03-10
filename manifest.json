@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "TEDUH APDL Fast Access",
-  "version": "2.0.0",
+  "version": "2.0.1",
   "description": "Quick access to TEDUH project details and unit status tracking by APDL code.",
   "permissions": [
     "storage",

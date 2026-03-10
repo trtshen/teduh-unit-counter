@@ -133,3 +133,4 @@ dist
 output/
 !output/.gitkeep
 .DS_Store
+*.zip

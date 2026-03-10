@@ -4,7 +4,8 @@
   "description": "unit tests for popup.js using jest and jsdom",
   "scripts": {
     "test": "jest",
-    "pack": "zip -r teduh.zip manifest.json popup.html popup.css popup.js house-icon.png",
+    "bump:patch": "node scripts/bump-patch.js",
+    "pack": "npm run bump:patch && zip -r teduh.zip manifest.json popup.html popup.css popup.js house-icon.png",
     "clean:pack": "rm -f *.zip && npm run pack"
   },
   "devDependencies": {

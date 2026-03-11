@@ -1,0 +1,30 @@
+[
+  {
+    "id": 1,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "regexSubstitution": "https://teduh.kpkt.gov.my/semakan-status-kemajuan?apdl=\\1&unit=\\2"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https://teduh\\.kpkt\\.gov\\.my/unit-project-swasta/([^/]+)/([^/?#]+)",
+      "resourceTypes": ["main_frame"]
+    }
+  },
+  {
+    "id": 2,
+    "priority": 1,
+    "action": {
+      "type": "redirect",
+      "redirect": {
+        "regexSubstitution": "https://teduh.kpkt.gov.my/semakan-status-kemajuan?apdl=\\1"
+      }
+    },
+    "condition": {
+      "regexFilter": "^https://teduh\\.kpkt\\.gov\\.my/unit-project-swasta/([^/?#]+)$",
+      "resourceTypes": ["main_frame"]
+    }
+  }
+]

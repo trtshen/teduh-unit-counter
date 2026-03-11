@@ -2,52 +2,56 @@
 <html>
 
 <head>
-  <title>Unit Status Counter</title>
-  <style>
-    body {
-      font-family: Arial, sans-serif;
-      width: 300px;
-      padding: 10px;
-    }
-
-    .count {
-      font-size: 20px;
-      font-weight: bold;
-    }
-
-    select {
-      width: 80vw;
-    }
-
-    div#link-generator {
-      padding-top: 1em;
-      width: 80vw;
-      display: flex;
-      justify-content: space-between;
-    }
-  </style>
+  <meta charset="utf-8">
+  <title>TEDUH APDL Fast Access</title>
+  <link rel="stylesheet" href="popup.css">
 </head>
 
 <body>
-  <div id="figures">
-    <h2 id="project-title"></h2>
-    <h3>Unit Status:</h3>
-    <div>Total Units: <span id="total-units">Loading...</span></div>
-    <div>Sold Units: <span id="sold-count">Loading...</span></div>
-    <div>Not Sold Units: <span id="not-sold-count">Loading...</span></div>
+  <div class="search-form">
+    <input type="text" id="apdl-input" placeholder="APDL code (e.g. 30343-1)" autofocus>
+    <button id="open-btn">Open</button>
   </div>
 
-  <div id="last-visits">
-    <h4>Last Visited URLs:</h4>
-    <select id="visited-urls" onchange="openSelectedUrl()">
-      <option value="">Select a URL...</option>
-    </select>
+  <div id="status-msg"></div>
+
+  <div id="project-info">
+    <div class="project-header">
+      <h2 id="project-name"></h2>
+      <a id="teduh-link" class="open-teduh-link" href="#" target="_blank">Open in TEDUH &rarr;</a>
+    </div>
+    <div class="project-meta">
+      <span id="project-code"></span>
+      <span id="project-status"></span>
+    </div>
+
+    <div class="unit-counts">
+      <div class="count-card total">
+        <span class="count-value" id="total-units">-</span>
+        <span class="count-label">Total</span>
+      </div>
+      <div class="count-card sold">
+        <span class="count-value" id="sold-count">-</span>
+        <span class="count-label">Sold</span>
+      </div>
+      <div class="count-card unsold">
+        <span class="count-value" id="unsold-count">-</span>
+        <span class="count-label">Unsold</span>
+      </div>
+    </div>
+
+    <div id="newly-sold-section"></div>
   </div>
 
-  <div id="link-generator"></div>
+  <div id="recent-section">
+    <h3>Recent <button id="clear-recent" class="clear-btn" title="Clear history">&times;</button></h3>
+    <ul id="recent-list"></ul>
+  </div>
 
-  <p>What is <a href="https://www.propertyguru.com.my/property-guides/what-is-apdl-and-why-is-it-so-important-30199#:~:text=The%20APDL%20is%20both%20a,of%20the%20property%20development%20process." target="_blank">APDL</a>? This code can be found on the property brochure provided by your developer or agent.</p>
-  
+  <div class="footer">
+    <a href="https://teduh.kpkt.gov.my/" target="_blank">teduh.kpkt.gov.my</a>
+  </div>
+
   <script src="popup.js"></script>
 </body>
 

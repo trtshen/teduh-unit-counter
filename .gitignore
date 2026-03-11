@@ -128,4 +128,12 @@ dist
 .yarn/build-state.yml
 .yarn/install-state.gz
 .pnp.*
+
+# Project output/log files
+output/
+!output/.gitkeep
 .DS_Store
+*.zip
+
+# Chrome auto-generated metadata (declarativeNetRequest compiled rulesets)
+_metadata/

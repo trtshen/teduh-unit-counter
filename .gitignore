@@ -134,3 +134,6 @@ output/
 !output/.gitkeep
 .DS_Store
 *.zip
+
+# Chrome auto-generated metadata (declarativeNetRequest compiled rulesets)
+_metadata/

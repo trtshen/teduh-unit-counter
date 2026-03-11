@@ -5,7 +5,7 @@
   "scripts": {
     "test": "jest",
     "bump:patch": "node scripts/bump-patch.js",
-    "pack": "npm run bump:patch && zip -r teduh.zip manifest.json popup.html popup.css popup.js house-icon.png",
+    "pack": "npm run bump:patch && zip -r teduh.zip manifest.json popup.html popup.css popup.js background.js rules.json house-icon.png privacy-policy.html",
     "clean:pack": "rm -f *.zip && npm run pack"
   },
   "devDependencies": {
